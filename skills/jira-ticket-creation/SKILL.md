@@ -1,9 +1,9 @@
 ---
 name: jira-story-ticket
-description: Generate a Jira Story ticket (title + description) from a short subject input. Use when the user wants to create a Jira ticket, write a story, or says something like "create a ticket for...", "generate a Jira story about...", "I need a ticket on...". Automatically detects ticket type from input; asks one clarifying question only if ambiguous.
+description: Generate a Jira ticket (title + description) from a short subject input. Use when the user wants to create a Jira ticket or says something like "create a ticket for...", "generate a Jira story about...", "I need a ticket on...". Automatically detects ticket type from input; asks one clarifying question only if ambiguous.
 ---
 
-# Jira Story Ticket Generator
+# Jira Ticket Generator
 
 ## Workflow
 
@@ -35,15 +35,12 @@ Do not ask for more information. Generate from what you have.
 
 ### Step 3 — Generate ticket
 
-Generate **title** and **description** using the format matching the detected type (see Formats section below).
-
 **Verbosity rules — strictly enforced:**
 - Title: max 60 characters
 - User Story: 1 sentence
-- Context: 2-3 lines max
-- AC: as many as needed, but each criterion is ONE short sentence (no sub-clauses, no explanations)
-- Out of Scope: 2-3 items max, only if obvious from input
-- Notes/Dependencies: short bullet points only — no sub-lists, no technical explanations
+- Context: 1-2 lines max
+- AC / Deliverables / DoD: one short sentence per item, no sub-clauses
+- Out of Scope and Notes/Dependencies: omitted unless explicitly present in the input
 - **The full ticket must fit on one screen**
 
 Output format:
@@ -74,17 +71,11 @@ Output format:
 As a [persona], I want [goal], so that [benefit].
 
 ## Context
-[2-3 lines max. Why this ticket exists.]
+[1-2 lines max. Why this ticket exists.]
 
 ## Acceptance Criteria
-- [ ] Given [context], when [action], then [result]  ← short, one line each
+- [ ] Given [context], when [action], then [result]
 - [ ] ...
-
-## Out of Scope
-- [2-3 items max, only if obvious]
-
-## Notes / Dependencies
-- [Short bullets only — no explanations]
 ```
 
 ---
@@ -112,9 +103,6 @@ As a [persona], I want [goal], so that [benefit].
 
 ## Environment
 - [Version / platform / OS — if known]
-
-## Notes
-[Short bullets only — if inferable]
 ```
 
 ---
@@ -136,9 +124,6 @@ As a [persona], I want [goal], so that [benefit].
 
 ## Definition of Done
 - [ ] [Criterion]
-
-## Notes / Dependencies
-- [Short bullets only]
 ```
 
 ---
@@ -157,22 +142,15 @@ As a [persona], I want [goal], so that [benefit].
 ## Timebox
 [Duration — if inferable]
 
-## Approach
-- [Axis 1]
-- [Axis 2]
-
 ## Expected Output
 [doc / ADR / POC / recommendation]
-
-## Notes / Dependencies
-- [Short bullets only]
 ```
 
 ---
 
 ## Language rules
 
-- Generate the full ticket (title + description) in the language detected from the user's input or explicitly requested
+- Generate the full ticket in the language detected from the user's input or explicitly requested
 - If the user writes in French → generate in French
 - If the user writes in English → generate in English
 - If the user explicitly says "in French" or "en anglais" → follow that instruction
