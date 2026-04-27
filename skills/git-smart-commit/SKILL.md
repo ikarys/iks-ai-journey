@@ -28,6 +28,7 @@ Abort the workflow (with a clear message) if:
 
 Also check for hooks that may block commits:
 - If `.husky/pre-commit`, `.git/hooks/pre-commit`, or commitlint config exists, mention it to the user so they're not surprised if a commit is rejected.
+- If `AGENTS.md` exists, read it for repo-specific commit message constraints (e.g. scope format, allowed characters).
 
 ### Step 1 — Inspect repository state
 
@@ -61,7 +62,7 @@ Do NOT silently add untracked files.
 For each changed file:
 1. Read the diff to understand the nature of the change
 2. Identify type: `feat`, `fix`, `refactor`, `docs`, `style`, `test`, `chore`, `ci`, `perf`, `build`, `revert`
-3. Identify scope: module, component, service, or package impacted
+3. Identify scope (see **Scope rules** below)
 4. **Detect breaking changes proactively**: removed public APIs, changed signatures, renamed exported symbols, removed config keys, changed DB schema. Flag with `!` in the type/scope.
 5. Group files belonging to the same logical change
 
@@ -71,6 +72,12 @@ For each changed file:
 - Config/docs supporting a feature → same commit as the feature
 - Independent concerns → separate commits
 - When in doubt, split rather than merge (atomic commits > large commits)
+
+**Scope rules**:
+- Change targets a clear module, component, or package → use scope: `feat(auth): add token refresh`
+- Change is cross-cutting (global rename, dep bump, full format) → no scope: `chore: upgrade lodash to 4.17.21`
+- Small or flat repo with no clear module boundaries → no scope
+- Before formatting the scope, check `AGENTS.md` or remote hooks for constraints (some repos reject hyphens, special chars, etc.)
 
 ### Step 3 — Propose commits
 
@@ -112,16 +119,18 @@ After the list, print the exact commands that will run. For commits with bodies,
 Commands to execute:
   git add -- "src/auth/oauth.ts" "src/auth/pkce.ts"
   git commit -F - <<'EOF'
-  feat(auth): add OAuth2 PKCE flow
+feat(auth): add OAuth2 PKCE flow
 
-  Implements PKCE per RFC 7636 for public clients.
+Implements PKCE per RFC 7636 for public clients.
 
-  Closes: #142
-  EOF
+Closes: #142
+EOF
 
   git add -- "src/api/user.ts"
   git commit -m "fix(api): handle null response in user endpoint"
 ```
+
+**Important**: heredoc content and closing `EOF` must be flush-left (no leading spaces), only the `git` commands themselves are indented for readability.
 
 ### Step 4 — Wait for explicit validation
 
@@ -167,18 +176,7 @@ BREAKING CHANGE: description of what breaks and the migration path
 EOF
 ```
 
-**Forbidden characters in commit messages**:
-
-To guarantee safe heredoc execution and avoid shell expansion issues, the following are NOT allowed in any commit subject, body, or footer:
-
-- Backticks (`` ` ``) — use single quotes or the word instead: `the 'oauth' module`
-- Dollar signs followed by `(` or `{` (`$(...)`, `${...}`) — rephrase
-- The literal string `EOF` on a line by itself — use a different word
-- Backslash-escape sequences meant to be literal (`\n`, `\t`) — use actual formatting instead
-
-If the proposed message would contain any of these, rewrite it before executing. If the user insists on including one of these characters (e.g., documenting a shell command), refuse and suggest they commit manually or reference the syntax indirectly (e.g., "dollar-paren syntax" instead of the literal `$(...)`).
-
-Standalone `$`, single quotes, double quotes, parentheses, and brackets are fine — the single-quoted heredoc (`<<'EOF'`) handles them safely.
+**Heredoc safety**: always use `<<'EOF'` (single-quoted) to prevent shell expansion. Avoid backticks, `$(...)`, `${...}`, and literal `EOF` on its own line inside the message body. Rewrite if needed.
 
 **Body formatting rules**:
 - Blank line between subject and body (mandatory — parsers rely on it)
@@ -191,7 +189,6 @@ Standalone `$`, single quotes, double quotes, parentheses, and brackets are fine
 **General execution rules**:
 - Always use `git add -- <path>` (the `--` prevents issues with paths starting with `-` or containing special characters)
 - Always quote paths that contain spaces or special characters
-- Use single-quoted heredoc delimiter (`<<'EOF'`) to prevent shell expansion inside the message
 - If a commit fails (hook rejection, etc.): STOP, report the error, do not continue with subsequent commits
 
 After all commits succeed, print:
@@ -202,53 +199,20 @@ git log --oneline -N   ← where N is the number of commits just created
 
 so the user sees the final state. Remind them: **no push is performed** — they decide when to push.
 
-## Conventional Commits — Mandatory Specification
+## Conventional Commits — Rules
 
-All commits **MUST** follow Conventional Commits. This is non-negotiable for this skill.
+All commits **MUST** follow [Conventional Commits](https://www.conventionalcommits.org/).
 
-### Format
+Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `ci`, `perf`, `build`, `revert`.
 
-```
-type(scope): description
+### Writing rules
 
-[optional body]
-
-[optional footer(s)]
-```
-
-### Allowed types
-
-| Type       | Purpose |
-|------------|---------|
-| `feat`     | New feature (user-facing) |
-| `fix`      | Bug fix |
-| `docs`     | Documentation only |
-| `style`    | Formatting, whitespace, missing semicolons — no logic change |
-| `refactor` | Code restructuring without behavior change |
-| `test`     | Adding or updating tests |
-| `chore`    | Maintenance, deps, tooling (not CI) |
-| `ci`       | CI/CD pipelines, automation |
-| `perf`     | Performance improvement |
-| `build`    | Build system, package manager config |
-| `revert`   | Revert a previous commit |
-
-### Writing rules (mandatory)
-
-- **Language: English only.** Commit messages are written in English regardless of the language used in the conversation. This is a hard rule — international convention.
-- Description: lowercase, imperative mood ("add", not "added" / "adds"), no trailing period
+- **Language: English only** — regardless of conversation language
+- Imperative mood, lowercase, no trailing period: `add`, not `added` / `adds`
 - First line ≤ 72 characters
-- Scope is optional but recommended; use kebab-case or a single word
-- Body (optional): wrap at 72 chars, explain **what** and **why**, not how
-- Footer: `Refs: #123`, `Closes: #456`, `Co-authored-by: ...`
-
-### Breaking changes
-
-Two equivalent conventions — pick one, stay consistent:
-
-1. `!` after type/scope: `feat(api)!: remove deprecated /v1/users endpoint`
-2. Footer: `BREAKING CHANGE: /v1/users has been removed, use /v2/users`
-
-Prefer both for high-impact changes (visual flag + machine-readable footer).
+- Body (when present): wrap at 72 chars, explain **what** and **why**, not how
+- Footers: `Refs: #123`, `Closes: #456`, `Co-authored-by: ...`
+- Breaking changes: use `!` after type/scope **and** `BREAKING CHANGE:` footer for high-impact changes
 
 ## Edge cases to handle
 
