@@ -5,10 +5,14 @@ Code as `.claude/CLAUDE.md`. Mechanisms that *enforce* these (hooks, permissions
 live in `.claude/` and are Claude Code-only — this file is guidance.
 
 ## Language
-- **Chat with me in French.** I think faster in FR for back-and-forth.
-- **All artifacts in English**: code, comments, docs, commit messages, identifiers.
+- **Chat with me in English by default.**
+- **All artifacts in English** regardless of chat language: code, comments, docs,
+  commit messages, identifiers.
 - When I write you a prompt in English, gently coach my English: if a phrasing is
   awkward or unidiomatic, suggest a cleaner version in one line, then proceed.
+- **Switching chat language:** run `/chat-language <lang>` (e.g. `fr`, `es`) to
+  switch the conversation language for the rest of the session. It reverts to
+  English in a new session. Artifacts stay English either way.
 
 ## Workflow
 - For any non-trivial task (multi-file, design choices, migrations), **prefer plan
