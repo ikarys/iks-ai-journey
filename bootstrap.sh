@@ -14,8 +14,7 @@
 #   ./bootstrap.sh claude pi       # non-interactive: configure these agents
 #   ./bootstrap.sh --all           # non-interactive: configure every known agent
 #
-# Whatever the selection, git hooks (core.hooksPath) are always wired: they are
-# tool-neutral and enforce Conventional Commits for any git client.
+# Conventional Commits and secret scanning are enforced via .pre-commit-config.yaml.
 #
 # Pretty output uses plain ANSI + Unicode — no external deps (no gum). Colour is
 # auto-disabled when stdout is not a TTY or NO_COLOR is set. The interactive
@@ -131,7 +130,7 @@ interactive_select() {
 # opencode): add a key + label here and a matching setup_<key> function.
 KEYS=(claude pi)
 LABELS=(
-  "Claude Code — .claude/ symlinks, settings.json, hooks"
+  "Claude Code — .claude/ symlinks, settings.json"
   "pi.dev      — reads AGENTS.md natively (no files generated)"
 )
 
@@ -323,18 +322,9 @@ for key in ${chosen[@]+"${chosen[@]}"}; do
   "setup_${key}"
 done
 
-# --- Always: tool-neutral git hooks + executable bits ------------------------
-step "git hooks ${DIM}(all agents)${RESET}"
-if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git config core.hooksPath git-hooks
-  ok "git core.hooksPath = git-hooks"
-else
-  warn "not a git repository — skipped core.hooksPath"
-fi
-
+# --- Always: executable bits -------------------------------------------------
 chmod +x scripts/*.sh bootstrap.sh 2>/dev/null || true
-chmod +x git-hooks/* 2>/dev/null || true
-ok "scripts and git hooks marked executable"
+ok "scripts marked executable"
 
 # Optional global plugins last (interactive opt-in; skipped in CI).
 install_plugins
