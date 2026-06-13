@@ -27,7 +27,7 @@ are Claude Code-only by nature.
 |------|------------|
 | `AGENTS.md` | Canonical agent instructions. Read **natively by Cursor**; symlinked into Claude Code as `.claude/CLAUDE.md`. |
 | `canonical/rules/` | One light, **path-scoped, semantic** rule per technology (terraform, kubernetes, docker, argocd, python, rust). Architecture only — no linter duplication. |
-| `canonical/skills/` | Doc-generation skills, one folder each = `SKILL.md` + `template.md`: `tad/` (Technical Architecture Doc), `adr/` (MADR decision record), `standard/` (technical standard). |
+| `canonical/skills/` | All skills, one folder each (`SKILL.md` + optional `template.md`). Doc-gen: `tad/`, `adr/`, `standard/`. Workflow: `git-smart-commit/`, `jira-ticket-creation/`, `agentsmd-generator/`. |
 | `.claude/CLAUDE.md` | → `../AGENTS.md` (symlink) |
 | `.claude/rules/` | → `../canonical/rules/` (symlink) |
 | `.claude/skills/` | → `../canonical/skills/` (symlink) |
@@ -38,9 +38,6 @@ are Claude Code-only by nature.
 | `git-hooks/commit-msg` | Enforce **Conventional Commits** (tool-agnostic, any git client). |
 | `git-hooks/pre-commit` | Run `gitleaks` if installed, else warn. |
 | `bootstrap.sh` | Idempotently (re)create symlinks + set `core.hooksPath=git-hooks`. |
-
-> Note: a separate top-level `skills/` directory holds personal, hand-written
-> skills and is independent of the `canonical/skills/` doc-gen set above.
 
 ## Setup
 

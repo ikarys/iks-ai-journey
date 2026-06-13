@@ -57,6 +57,11 @@ git diff --cached
 
 Do NOT silently add untracked files.
 
+**Sensitive file guard** — before grouping, scan the set of files to be committed (staged + any the user opts to include). If a path matches a secret/credential pattern — `.env`, `.env.*`, `*.pem`, `*.key`, `*.p12`, `id_rsa*`, `*credentials*` — or the content looks like a private key, STOP and ask:
+> "⚠ '<file>' looks like a secret. Commit it anyway? (yes / skip / abort)"
+
+Default to **skip**. Never commit a matched file without explicit confirmation.
+
 ### Step 2 — Analyze and group changes
 
 For each changed file:
@@ -66,12 +71,35 @@ For each changed file:
 4. **Detect breaking changes proactively**: removed public APIs, changed signatures, renamed exported symbols, removed config keys, changed DB schema. Flag with `!` in the type/scope.
 5. Group files belonging to the same logical change
 
+**Core invariant** — every grouping decision resolves to this:
+> **One commit = one logical change = one `type(scope)` = a tree that still builds.**
+- If a group would need two types (e.g. `feat` *and* `fix`) → split it.
+- If two groups only compile/pass together → merge them.
+- This rule overrides every heuristic below whenever they conflict.
+
 **Grouping rules**:
 - Same feature across multiple files → one commit
 - Test files + the code they test → same commit
 - Config/docs supporting a feature → same commit as the feature
+- A renamed/moved symbol + all its call-site updates → one commit
+- A new import/dependency + the code that uses it → one commit
+- Prefer module/directory proximity: same-package changes serving one purpose group together
 - Independent concerns → separate commits
-- When in doubt, split rather than merge (atomic commits > large commits)
+- When in doubt, split rather than merge — **but never split changes that only make sense together** (a commit must never leave the build broken)
+
+**Isolate the noise** — keep these out of feature commits:
+- Pure reformatting / whitespace → its own `style:` commit
+- Lockfiles (`package-lock.json`, `go.sum`, `Cargo.lock`, …) → travel with the `chore:`/`build:` dependency change that produced them, never with a feature
+- Generated / vendored artifacts → their own isolated commit, flagged as such
+
+**Mixed-concern file (conflict detection)** — a commit is file-level at minimum. If one file's changes belong to two different groups, do NOT silently lump it: surface it to the user and offer `git add -p` to split by hunk.
+
+**Order the commits** so each is independently valid:
+1. Foundational changes first (refactors, renames, infra the rest builds on)
+2. Then the features / fixes that depend on them
+3. Then docs / chore / style touch-ups
+
+Applied in sequence, every commit must leave the tree buildable and tests green.
 
 **Scope rules**:
 - Change targets a clear module, component, or package → use scope: `feat(auth): add token refresh`
@@ -181,6 +209,7 @@ EOF
 **Body formatting rules**:
 - Blank line between subject and body (mandatory — parsers rely on it)
 - Wrap body lines at 72 characters
+- **Stay concise and useful**: the body carries only the non-obvious *why*. No filler, no restating the subject, no narrating *how*, and **never list the changed files** — the diff already shows them. If there is nothing non-obvious to say, omit the body.
 - Use paragraphs for narrative, bullets (`-`) for enumerations
 - Footers go at the end, separated by a blank line from the body
 - One footer per line, format `Token: value` (e.g. `Refs: #123`, `Closes: #456`, `Co-authored-by: Name <email>`)
@@ -210,7 +239,7 @@ Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `ci`, `perf`
 - **Language: English only** — regardless of conversation language
 - Imperative mood, lowercase, no trailing period: `add`, not `added` / `adds`
 - First line ≤ 72 characters
-- Body (when present): wrap at 72 chars, explain **what** and **why**, not how
+- Body (when present): wrap at 72 chars, explain **what** and **why**, not how — concise, no file listings
 - Footers: `Refs: #123`, `Closes: #456`, `Co-authored-by: ...`
 - Breaking changes: use `!` after type/scope **and** `BREAKING CHANGE:` footer for high-impact changes
 
