@@ -44,6 +44,16 @@
         ]
       }
     ],
-    "PostToolUse": []
+    "PostToolUse": [],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/scripts/check-precommit.sh"
+          }
+        ]
+      }
+    ]
   }
 }

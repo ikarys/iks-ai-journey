@@ -8,13 +8,26 @@ The sections below are **Claude Code-only** and not duplicated in AGENTS.md.
 ---
 
 ## Branch discipline
+
 - When blocked by `check-branch.sh` (editing on `main`/`master`), **do not create
   the branch silently**. Instead, propose a branch name derived from the task
   (e.g. `feat/add-pagination`, `fix/auth-token-expiry`) and ask for confirmation
   before running `git switch -c <proposed-name>`.
 
 ## Hooks & enforcement (Claude Code only)
+
 - `scripts/check-branch.sh` runs as PreToolUse before every edit — blocks edits on
   `main`/`master`.
+- `scripts/check-precommit.sh` runs as UserPromptSubmit on every prompt — detects
+  missing or gitleaks-free `.pre-commit-config.yaml` and suggests `/precommit-setup`
+  exactly once per repo (sentinel in `~/.claude/precommit-checks/`).
 - Conventional Commits and secret scanning are enforced via `.pre-commit-config.yaml`
   (hooks: `conventional-pre-commit`, `gitleaks`).
+
+## pre-commit setup skill
+
+- `/precommit-setup` scaffolds a complete `.pre-commit-config.yaml` adapted to the
+  detected stack (Python → ruff, Shell → shellcheck, Terraform → terraform_fmt, etc.).
+- Always includes: end-of-file-fixer, trailing-whitespace, check-yaml/json/toml,
+  check-merge-conflict, gitleaks, conventional-pre-commit.
+- Asks before writing the file and before running `pre-commit install`.

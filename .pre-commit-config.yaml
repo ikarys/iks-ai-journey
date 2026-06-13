@@ -1,4 +1,19 @@
 repos:
+  # ── File hygiene ────────────────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=500]
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+
   # ── Secrets ────────────────────────────────────────────────────────────────
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.22.1
