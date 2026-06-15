@@ -28,7 +28,10 @@
       "Read(**/.env.*)",
       "Read(**/*.pem)",
       "Read(**/*.key)",
+      "Read(**/*.crt)",
       "Read(**/secrets/**)",
+      "Read(**/*secret*)",
+      "Read(**/*secrets*)",
       "Read(**/*credentials*)"
     ]
   },
