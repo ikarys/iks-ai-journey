@@ -38,6 +38,21 @@ live in `.claude/` and are Claude Code-only — this file is guidance.
   than just doing it. One focused agent beats several half-scoped ones.
 - Always relay what matters from an agent's result — its output is not shown to me.
 
+## Token economy
+
+- **Minimize token/cost consumption.** Avoid large models when a smaller one
+  suffices.
+- Prefer the cheaper capable model for implementation and mechanical work;
+  reserve the top model for planning and hard debugging. In Claude Code: Sonnet
+  by default, Opus on demand via `/model`. There is no automatic
+  complexity-based routing — it is the session model plus discipline.
+- Keep context lean: clear it between unrelated tasks.
+- **If a prose-compression mode is available, default to it.** In Claude Code
+  the caveman plugin provides this — default to caveman **full** mode without
+  being asked; the user adjusts intensity on the fly
+  (`lite`/`full`/`ultra`/`wenyan-*` or off). Compress prose only — keep code,
+  paths, commands, and error strings verbatim.
+
 ## Code quality
 
 - Apply **Clean Code** and **Clean Architecture** *as you generate* — naming,
@@ -67,4 +82,6 @@ live in `.claude/` and are Claude Code-only — this file is guidance.
 
 - Never run destructive commands (`rm -rf`, `terraform apply/destroy`,
   `kubectl delete`) — these are denied at the harness level. Plan/diff/read only.
-- Never read secrets (`.env`, `*.pem`, credentials). Treat them as opaque.
+- Never read secrets (`.env`, `*.pem`, `*.key`, `*.crt`, credentials, or any file
+  whose name contains `secret`). These are denied at the harness level. Treat them
+  as opaque.
