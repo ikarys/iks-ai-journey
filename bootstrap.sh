@@ -7,7 +7,8 @@
 # The canonical source of truth is AGENTS.md + canonical/. Each supported agent
 # gets a thin adapter so it reads that source the way *it* expects. AGENTS.md is
 # already the cross-agent standard (read natively by pi.dev, opencode, Cursor),
-# so several agents need little or nothing — only Claude Code needs symlinks.
+# so guidance needs little or nothing. Skills differ: Claude Code reads them via
+# repo-scoped .claude/ symlinks; pi.dev via a user-global settings `skills` entry.
 #
 # Usage:
 #   ./bootstrap.sh                 # interactive checkbox select (or all, if no TTY)
@@ -131,7 +132,7 @@ interactive_select() {
 KEYS=(claude pi)
 LABELS=(
   "Claude Code — .claude/ symlinks, settings.json"
-  "pi.dev      — reads AGENTS.md natively (no files generated)"
+  "pi.dev      — reads AGENTS.md natively; registers canonical/skills in settings"
 )
 
 # --- Optional plugin registry ------------------------------------------------
@@ -175,9 +176,40 @@ setup_claude() {
 setup_pi() {
   step "pi.dev"
   # pi loads AGENTS.md from the project root and parent dirs natively, plus a
-  # global ~/.pi/agent/AGENTS.md. Nothing to generate in-repo.
+  # global ~/.pi/agent/AGENTS.md. Nothing to generate for guidance.
   ok   "AGENTS.md at repo root is read natively — nothing to generate"
   info "for global rules, drop an AGENTS.md in ~/.pi/agent/ (your machine)"
+
+  # Skills: unlike Claude (repo-scoped .claude/skills symlink), pi discovers
+  # skills from user-global locations and a settings `skills` array. We register
+  # canonical/skills there so pi reads the single source of truth directly — no
+  # copies, no drift. See https://pi.dev/docs/latest/skills.
+  local pi_settings="$HOME/.pi/agent/settings.json"
+  local skills_dir="$repo_root/canonical/skills"
+
+  if ! command -v jq >/dev/null 2>&1; then
+    warn "jq not found — cannot register skills in $pi_settings"
+    info "add this manually:  \"skills\": [\"$skills_dir\"]"
+    return 0
+  fi
+
+  mkdir -p "$(dirname "$pi_settings")"
+  [ -f "$pi_settings" ] || printf '{}\n' > "$pi_settings"
+
+  # Idempotent unique-append: drop any existing entry for this dir, re-add once.
+  local tmp
+  tmp="$(mktemp)"
+  if jq --arg dir "$skills_dir" \
+       '.skills = ((.skills // []) - [$dir] + [$dir])' \
+       "$pi_settings" > "$tmp"; then
+    mv "$tmp" "$pi_settings"
+    ok   "registered ${BOLD}$skills_dir${RESET} in pi settings.json"
+    info "user-global — pi reads canonical/skills directly (no copies)"
+    info ".pi/extensions/enforce.ts is auto-discovered — same scripts/ as Claude"
+  else
+    rm -f "$tmp"
+    warn "could not update $pi_settings (invalid JSON?) — left untouched"
+  fi
 }
 
 # --- Selection logic ---------------------------------------------------------

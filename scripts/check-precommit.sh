@@ -26,12 +26,18 @@ hash_str() {
   fi
 }
 
-# Claude passes a JSON payload on stdin; grab session_id best-effort so we can
-# throttle the nudge per session. Fall back to a per-day key when absent.
-INPUT="$(cat 2>/dev/null || true)"
-SESSION_ID="$(printf '%s' "$INPUT" \
-  | grep -oE '"session_id"[[:space:]]*:[[:space:]]*"[^"]+"' \
-  | head -n1 | grep -oE '"[^"]+"$' | tr -d '"')"
+# Resolve a session id to throttle the nudge per session. Harness-neutral order:
+#   1. $PRECOMMIT_SESSION_ID  (pi / cursor adapters set this)
+#   2. first CLI arg          (generic caller)
+#   3. session_id in a JSON payload on stdin (Claude Code's hook contract)
+#   4. per-day key            (last resort when nothing identifies the session)
+SESSION_ID="${PRECOMMIT_SESSION_ID:-${1:-}}"
+if [ -z "$SESSION_ID" ]; then
+  INPUT="$(cat 2>/dev/null || true)"
+  SESSION_ID="$(printf '%s' "$INPUT" \
+    | grep -oE '"session_id"[[:space:]]*:[[:space:]]*"[^"]+"' \
+    | head -n1 | grep -oE '"[^"]+"$' | tr -d '"')"
+fi
 [ -n "$SESSION_ID" ] || SESSION_ID="day-$(date +%Y%m%d)"
 
 # Only meaningful inside a git work tree.
