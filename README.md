@@ -4,6 +4,16 @@ A portable, multi-tool **AI agent configuration** repo. One source of truth in
 tool-neutral markdown; thin per-tool adapters on top. Wired today for **Claude
 Code** and **pi.dev**, with **Cursor** designed to plug in without restructuring.
 
+## Documentation
+
+| Page | What it covers |
+|------|----------------|
+| [Architecture](docs/architecture.md) | The two-layer model, per-agent adapters, the script contract, how to add an agent. |
+| [Skills](docs/skills.md) | The 5 skills and how each agent loads them. |
+| [Commands](docs/commands.md) | Slash commands (`/chat-language`) and how they're wired. |
+| [Rules](docs/rules.md) | The 6 path-scoped rules and the rules-vs-linters split. |
+| [Enforcement](docs/enforcement.md) | The hook scripts, the contract, per-agent adapters, pre-commit. |
+
 ## Principle
 
 ```
@@ -15,17 +25,14 @@ canonical/ + AGENTS.md              scripts/*.sh  ← single source of logic
    └─ (future)    Cursor               └─ .cursor/hooks.json      (command hook)
 ```
 
-Two layers, each with one source and thin per-tool adapters:
+Two layers, each with **one source** and thin per-tool adapters:
 
-- **Guidance** is markdown the LLM reads (`AGENTS.md`, `canonical/rules`,
-  `canonical/skills`). Portable: every agent reads the same files via its adapter —
-  symlink (Claude), `skills[]` setting (pi), `.mdc` (Cursor). Soft: the model *may*
-  follow it.
-- **Enforcement** is executable the *harness* runs deterministically. The logic
-  lives once in `scripts/*.sh` (exit `0`=allow, `≠0`=block, reason on stderr). Each
-  agent calls the *same* scripts through its own mechanism — a command hook (Claude,
-  Cursor) or a TypeScript extension that shells out (pi). Hard: it blocks regardless
-  of the model. No logic is duplicated; only the wrappers differ.
+- **Guidance** — markdown the LLM reads (`AGENTS.md`, `canonical/`). Portable, soft.
+- **Enforcement** — executable the harness runs (`scripts/*.sh`). Mechanism-bound,
+  hard. The *logic* lives once; each agent calls the same scripts.
+
+Full detail, the script contract, and how to add an agent:
+**[docs/architecture.md](docs/architecture.md)**.
 
 ## Layout
 
@@ -71,22 +78,14 @@ Hooks skip any tool that isn't installed, so nothing here is mandatory:
   dummy/generic examples only (`service-a`, `region-x`).
 - **Guidance vs. enforcement** are kept separate so guidance stays portable.
 
-## Roadmap — adding more tools
+## Agent status
 
-The canonical layer never changes; you only add adapters.
+| Agent | Guidance | Enforcement | Status |
+|-------|----------|-------------|--------|
+| Claude Code | `.claude/` symlinks | `settings.json` hooks → `scripts/` | wired |
+| pi.dev | `skills[]` + `prompts[]` | `.pi/extensions/enforce.ts` → `scripts/` | wired |
+| Cursor | `.cursor/rules/*.mdc` | `.cursor/hooks.json` → `scripts/` | designed |
 
-- **pi.dev** — *wired*. Reads `AGENTS.md` natively; `bootstrap.sh pi` registers
-  `canonical/skills/` (as `skills[]`) and `canonical/commands/` (as `prompts[]`, so
-  slash commands like `/chat-language` work) in `~/.pi/agent/settings.json`, and the
-  `.pi/extensions/enforce.ts` shim runs the same `scripts/*.sh` as Claude. Same
-  guidance, same commands, same enforcement logic — no copies.
-- **Cursor** — *designed, not yet wired*. Reads `AGENTS.md` natively; rules map
-  `canonical/rules/*.md` front-matter `paths:` → `.cursor/rules/*.mdc` `globs:`.
-  Enforcement reuses `scripts/*.sh` directly: Cursor's command hooks (`.cursor/
-  hooks.json`, `preToolUse` → `check-branch.sh`) share Claude's exit-code contract.
-  Two open contract details to confirm against a live Cursor before shipping the
-  config: the `matcher` tool names for edit tools, and how `beforeSubmitPrompt`
-  surfaces advisory stdout.
-
-Adding a tool = one new adapter + a few lines in `bootstrap.sh`. The source of truth
-(guidance in `canonical/`, logic in `scripts/`) stays untouched.
+Adding a tool = one new adapter + a few lines in `bootstrap.sh`; the source of truth
+stays untouched. See [docs/architecture.md](docs/architecture.md) for the per-agent
+details and the open Cursor questions.
