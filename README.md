@@ -1,25 +1,31 @@
 # iks-ai-journey
 
 A portable, multi-tool **AI agent configuration** repo. One source of truth in
-tool-neutral markdown; thin per-tool adapters on top. Set up for **Claude Code**
-today, designed so **pi.dev** and **Cursor** can plug in later without restructuring.
+tool-neutral markdown; thin per-tool adapters on top. Wired today for **Claude
+Code** and **pi.dev**, with **Cursor** designed to plug in without restructuring.
 
 ## Principle
 
 ```
-canonical/  ── tool-neutral guidance (markdown)  ← the only source of truth
-   │
-   ├─ symlink ─→  .claude/   (Claude Code adapter: CLAUDE.md, rules, skills)
-   └─ (future)    Cursor / pi.dev adapters
-
-Guidance (markdown) is portable.
-Enforcement (hooks, permissions, settings) is Claude Code-specific.
+GUIDANCE (markdown)                 ENFORCEMENT (executable)
+canonical/ + AGENTS.md              scripts/*.sh  ← single source of logic
+   │                                   │
+   ├─ symlink ─→  .claude/             ├─ .claude/settings.json   (command hook)
+   ├─ settings ─→ pi.dev               ├─ .pi/extensions/*.ts     (spawns the .sh)
+   └─ (future)    Cursor               └─ .cursor/hooks.json      (command hook)
 ```
 
-Guidance lives once in `canonical/` (and `AGENTS.md`). Each tool gets a thin adapter
-that points back at it — no copies, no drift. Mechanisms that *enforce* the guidance
-(format-on-save, branch protection, permission denials) are wired in `.claude/` and
-are Claude Code-only by nature.
+Two layers, each with one source and thin per-tool adapters:
+
+- **Guidance** is markdown the LLM reads (`AGENTS.md`, `canonical/rules`,
+  `canonical/skills`). Portable: every agent reads the same files via its adapter —
+  symlink (Claude), `skills[]` setting (pi), `.mdc` (Cursor). Soft: the model *may*
+  follow it.
+- **Enforcement** is executable the *harness* runs deterministically. The logic
+  lives once in `scripts/*.sh` (exit `0`=allow, `≠0`=block, reason on stderr). Each
+  agent calls the *same* scripts through its own mechanism — a command hook (Claude,
+  Cursor) or a TypeScript extension that shells out (pi). Hard: it blocks regardless
+  of the model. No logic is duplicated; only the wrappers differ.
 
 ## Layout
 
@@ -27,17 +33,17 @@ are Claude Code-only by nature.
 |------|------------|
 | `AGENTS.md` | Canonical agent instructions. Read **natively by Cursor**; symlinked into Claude Code as `.claude/CLAUDE.md`. |
 | `canonical/rules/` | One light, **path-scoped, semantic** rule per technology (terraform, kubernetes, docker, argocd, python, rust). Architecture only — no linter duplication. |
-| `canonical/skills/` | All skills, one folder each (`SKILL.md` + optional `template.md`). Doc-gen: `tad/`, `adr/`, `standard/`. Workflow: `git-smart-commit/`, `jira-ticket-creation/`, `agentsmd-generator/`. |
+| `canonical/skills/` | All skills, one folder each (`SKILL.md` + optional `template.md`): `adr/`, `agentsmd-generator/`, `git-smart-commit/`, `jira-ticket-creation/`, `precommit-setup/`. |
+| `canonical/commands/` | Tool-neutral slash commands (e.g. `chat-language.md`). |
 | `.claude/CLAUDE.md` | → `../AGENTS.md` (symlink) |
-| `.claude/rules/` | → `../canonical/rules/` (symlink) |
-| `.claude/skills/` | → `../canonical/skills/` (symlink) |
+| `.claude/rules/` · `.claude/skills/` · `.claude/commands/` | → matching `../canonical/*` (symlinks) |
 | `.claude/agents/code-reviewer.md` | Read-only review subagent (`tools: Read, Grep, Glob`). |
-| `.claude/settings.json` | Permissions (deny destructive/secret-reading, allow read-only) + `PreToolUse`/`PostToolUse` hooks. |
-| `scripts/auto-fmt.sh` | **PostToolUse** hook: dispatch formatter/linter by extension, each guarded by `command -v`, never fails the edit. |
-| `scripts/check-branch.sh` | **PreToolUse** hook: block edits on `main`/`master`; escape hatch `ALLOW_MAIN_EDITS=1`. |
-| `git-hooks/commit-msg` | Enforce **Conventional Commits** (tool-agnostic, any git client). |
-| `git-hooks/pre-commit` | Run `gitleaks` if installed, else warn. |
-| `bootstrap.sh` | Idempotently (re)create symlinks + set `core.hooksPath=git-hooks`. |
+| `.claude/settings.json` | Permissions (deny destructive/secret-reading, allow read-only) + `PreToolUse`/`UserPromptSubmit` command hooks → `scripts/*.sh`. |
+| `.pi/extensions/enforce.ts` | pi enforcement adapter: a TypeScript shim that shells out to the same `scripts/*.sh` and maps the result to pi's `{ block, reason }`. |
+| `scripts/check-branch.sh` | Block edits on `main`/`master`; escape hatch `ALLOW_MAIN_EDITS=1`. Harness-neutral (uses `git`, ignores stdin). |
+| `scripts/check-precommit.sh` | Nudge `/precommit-setup` when no complete `.pre-commit-config.yaml`; throttled once per session via `$PRECOMMIT_SESSION_ID`. |
+| `.pre-commit-config.yaml` | Git-native enforcement for **everyone** (agents + humans): Conventional Commits + `gitleaks` secret scan. |
+| `bootstrap.sh` | Idempotently wire each selected agent: Claude symlinks, pi `skills[]`. (`.pi/extensions/` is auto-discovered by pi — nothing to wire.) |
 
 ## Setup
 
@@ -46,8 +52,9 @@ are Claude Code-only by nature.
 ```
 
 Run it after every fresh clone. It is idempotent and **required on Windows**, where
-clones often don't preserve symlinks — `bootstrap.sh` recreates them. It also wires
-the git hooks (`core.hooksPath=git-hooks`) and fixes executable bits.
+clones often don't preserve symlinks — `bootstrap.sh` recreates them. It also fixes
+executable bits. Commit-time enforcement is wired separately via `pre-commit install`
+against `.pre-commit-config.yaml` (see `/precommit-setup`).
 
 ### Optional tools the hooks use (all best-effort)
 
@@ -68,13 +75,17 @@ Hooks skip any tool that isn't installed, so nothing here is mandatory:
 
 The canonical layer never changes; you only add adapters.
 
-- **Cursor** (later): reads `AGENTS.md` natively. Map `canonical/rules/*.md`
-  front-matter `paths:` → Cursor `.mdc` `globs:` (generate `.cursor/rules/` from
-  canonical, or symlink where supported). No content is duplicated.
-- **pi.dev** (later): add a `pi/` adapter pointing at `AGENTS.md` and
-  `canonical/`. Port the *guidance*; re-express *enforcement* (the hook scripts in
-  `scripts/` and `git-hooks/`) in pi.dev's own mechanism, since hooks are
-  Claude-Code-specific.
+- **pi.dev** — *wired*. Reads `AGENTS.md` natively; `bootstrap.sh pi` registers
+  `canonical/skills/` in `~/.pi/agent/settings.json` via the `skills` array, and the
+  `.pi/extensions/enforce.ts` shim runs the same `scripts/*.sh` as Claude. Same
+  guidance, same enforcement logic — no copies.
+- **Cursor** — *designed, not yet wired*. Reads `AGENTS.md` natively; rules map
+  `canonical/rules/*.md` front-matter `paths:` → `.cursor/rules/*.mdc` `globs:`.
+  Enforcement reuses `scripts/*.sh` directly: Cursor's command hooks (`.cursor/
+  hooks.json`, `preToolUse` → `check-branch.sh`) share Claude's exit-code contract.
+  Two open contract details to confirm against a live Cursor before shipping the
+  config: the `matcher` tool names for edit tools, and how `beforeSubmitPrompt`
+  surfaces advisory stdout.
 
-Adding a tool = one new adapter folder + a few lines in `bootstrap.sh`. The source
-of truth stays untouched.
+Adding a tool = one new adapter + a few lines in `bootstrap.sh`. The source of truth
+(guidance in `canonical/`, logic in `scripts/`) stays untouched.
