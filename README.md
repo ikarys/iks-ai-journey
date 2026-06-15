@@ -43,7 +43,7 @@ Two layers, each with one source and thin per-tool adapters:
 | `scripts/check-branch.sh` | Block edits on `main`/`master`; escape hatch `ALLOW_MAIN_EDITS=1`. Harness-neutral (uses `git`, ignores stdin). |
 | `scripts/check-precommit.sh` | Nudge `/precommit-setup` when no complete `.pre-commit-config.yaml`; throttled once per session via `$PRECOMMIT_SESSION_ID`. |
 | `.pre-commit-config.yaml` | Git-native enforcement for **everyone** (agents + humans): Conventional Commits + `gitleaks` secret scan. |
-| `bootstrap.sh` | Idempotently wire each selected agent: Claude symlinks, pi `skills[]`. (`.pi/extensions/` is auto-discovered by pi — nothing to wire.) |
+| `bootstrap.sh` | Idempotently wire each selected agent: Claude symlinks, pi `skills[]` + `prompts[]`. (`.pi/extensions/` is auto-discovered by pi — nothing to wire.) |
 
 ## Setup
 
@@ -76,9 +76,10 @@ Hooks skip any tool that isn't installed, so nothing here is mandatory:
 The canonical layer never changes; you only add adapters.
 
 - **pi.dev** — *wired*. Reads `AGENTS.md` natively; `bootstrap.sh pi` registers
-  `canonical/skills/` in `~/.pi/agent/settings.json` via the `skills` array, and the
+  `canonical/skills/` (as `skills[]`) and `canonical/commands/` (as `prompts[]`, so
+  slash commands like `/chat-language` work) in `~/.pi/agent/settings.json`, and the
   `.pi/extensions/enforce.ts` shim runs the same `scripts/*.sh` as Claude. Same
-  guidance, same enforcement logic — no copies.
+  guidance, same commands, same enforcement logic — no copies.
 - **Cursor** — *designed, not yet wired*. Reads `AGENTS.md` natively; rules map
   `canonical/rules/*.md` front-matter `paths:` → `.cursor/rules/*.mdc` `globs:`.
   Enforcement reuses `scripts/*.sh` directly: Cursor's command hooks (`.cursor/
