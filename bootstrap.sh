@@ -129,10 +129,11 @@ interactive_select() {
 # --- Agent registry ----------------------------------------------------------
 # Keep KEYS and LABELS index-aligned. To add an agent later (e.g. cursor,
 # opencode): add a key + label here and a matching setup_<key> function.
-KEYS=(claude pi)
+KEYS=(claude pi vscode)
 LABELS=(
   "Claude Code — .claude/ symlinks, settings.json"
   "pi.dev      — reads AGENTS.md natively; registers canonical/skills in settings"
+  "VSCode (Win)— copy Claude config into the Windows .claude home (WSL hosts)"
 )
 
 # --- Optional plugin registry ------------------------------------------------
@@ -163,6 +164,62 @@ link() {
 
 # --- Per-agent setup ---------------------------------------------------------
 
+# The repo's security deny rules. Keep in sync with permissions.deny in
+# .claude/settings.json: both the secret-reading guards and the
+# destructive-command guards from CLAUDE.md §Safety.
+CLAUDE_DENY_PATTERNS=(
+  # Secret-reading guards
+  'Read(.env)'
+  'Read(.env.*)'
+  'Read(**/.env)'
+  'Read(**/.env.*)'
+  'Read(**/*.pem)'
+  'Read(**/*.key)'
+  'Read(**/*.crt)'
+  'Read(**/secrets/**)'
+  'Read(**/*secret*)'
+  'Read(**/*secrets*)'
+  'Read(**/*credentials*)'
+  # Destructive-command guards (CLAUDE.md §Safety)
+  'Bash(rm -rf:*)'
+  'Bash(rm -fr:*)'
+  'Bash(sudo rm:*)'
+  'Bash(terraform apply:*)'
+  'Bash(terraform destroy:*)'
+  'Bash(kubectl delete:*)'
+)
+
+# Idempotent merge of the repo's security deny rules into a settings.json file.
+# The repo's .claude/settings.json already enforces these within this project;
+# merging into a user-global settings.json extends the same protection to every
+# Claude Code session that reads that home. Used for both the WSL home
+# (~/.claude) and, via setup_vscode, the Windows home that the VSCode extension
+# reads. It only restricts, never grants.
+_claude_merge_deny() {
+  local file="$1"
+  if ! command -v jq >/dev/null 2>&1; then
+    warn "jq not found — skipping deny rules in $file"
+    info "add manually under permissions.deny: ${CLAUDE_DENY_PATTERNS[*]}"
+    return 0
+  fi
+
+  mkdir -p "$(dirname "$file")"
+  [ -f "$file" ] || printf '{}\n' > "$file"
+
+  local jq_patterns tmp
+  jq_patterns="$(printf '%s\n' "${CLAUDE_DENY_PATTERNS[@]}" | jq -R . | jq -s .)"
+  tmp="$(mktemp)"
+  if jq --argjson new_denies "$jq_patterns" \
+       '.permissions.deny = ((.permissions.deny // []) + $new_denies | unique)' \
+       "$file" > "$tmp"; then
+    mv "$tmp" "$file"
+    ok "deny rules merged → ${BOLD}$file${RESET}"
+  else
+    rm -f "$tmp"
+    warn "could not update $file — left untouched"
+  fi
+}
+
 setup_claude() {
   step "Claude Code"
   link ".claude/CLAUDE.md" "../AGENTS.md"
@@ -171,6 +228,10 @@ setup_claude() {
   link ".claude/commands"  "../canonical/commands"
   # .claude/settings.json (permissions + hooks) is tracked, not generated.
   ok "settings.json + hooks already tracked in .claude/"
+  # The enforcement hooks (check-branch, check-precommit) bind to
+  # $CLAUDE_PROJECT_DIR and only make sense inside this repo, so they stay
+  # project-scoped by design — they are not propagated to other sessions.
+  info "enforcement hooks stay project-scoped (bound to \$CLAUDE_PROJECT_DIR)"
 }
 
 # pi_register_array <settings-file> <field> <dir>
@@ -218,6 +279,63 @@ setup_pi() {
   pi_register_array "$pi_settings" prompts "$repo_root/canonical/commands"
   info "user-global — pi reads canonical/ directly (no copies)"
   info ".pi/extensions/enforce.ts is auto-discovered — same scripts/ as Claude"
+}
+
+# VSCode Claude Code on a Windows host (WSL setup). The Windows-side extension
+# uses the *Windows* home (C:\Users\<you>\.claude), NOT the WSL home — proven by
+# the settings.json the extension itself writes there. So the global wiring
+# done for the WSL ~/.claude never reaches it. This copies the same user-global
+# config into the Windows .claude home: instructions, commands, skills, and the
+# security deny rules. Copies, not symlinks — Windows processes don't follow
+# WSL symlinks across /mnt/c. Re-run bootstrap after editing canonical/ to
+# refresh them. No-op when there is no Windows drive (plain Linux / CI).
+setup_vscode() {
+  step "VSCode (Windows host) — Claude Code config"
+
+  if [ ! -d /mnt/c/Users ]; then
+    info "no /mnt/c/Users — not a WSL host with a Windows drive; skipping"
+    return 0
+  fi
+
+  # Prefer the Windows user whose VSCode actually has the Claude Code extension;
+  # fall back to the first user with a .claude or VSCode User dir.
+  local win_home="" d
+  for d in /mnt/c/Users/*; do
+    [ -d "$d" ] || continue
+    case "${d##*/}" in Public|Default|"Default User"|"All Users") continue ;; esac
+    if ls "$d"/.vscode/extensions/anthropic.claude-code-* >/dev/null 2>&1; then
+      win_home="$d"; break
+    fi
+  done
+  if [ -z "$win_home" ]; then
+    for d in /mnt/c/Users/*; do
+      { [ -d "$d/.claude" ] || [ -d "$d/AppData/Roaming/Code/User" ]; } \
+        && { win_home="$d"; break; }
+    done
+  fi
+  if [ -z "$win_home" ]; then
+    warn "could not locate a Windows user home under /mnt/c/Users — skipping"
+    return 0
+  fi
+  info "Windows home: ${BOLD}$win_home${RESET}"
+
+  local claude_dir="$win_home/.claude"
+  mkdir -p "$claude_dir"
+
+  # Global instructions (read as ~/.claude/CLAUDE.md), plus user-global commands
+  # and skills. Replace dirs wholesale so deletions in canonical/ propagate.
+  cp -f "AGENTS.md" "$claude_dir/CLAUDE.md"
+  ok "copied ${BOLD}AGENTS.md${RESET} ${DIM}->${RESET} $claude_dir/CLAUDE.md"
+  rm -rf "$claude_dir/commands" "$claude_dir/skills"
+  cp -rf "canonical/commands" "$claude_dir/commands"
+  cp -rf "canonical/skills"   "$claude_dir/skills"
+  ok "copied ${BOLD}canonical/{commands,skills}${RESET} ${DIM}->${RESET} $claude_dir/"
+
+  # Same security deny rules the CLI's WSL home gets.
+  _claude_merge_deny "$claude_dir/settings.json"
+
+  info "copies, not symlinks — re-run bootstrap after editing canonical/"
+  info "project hooks stay in the repo's .claude/ (loaded when you open the repo)"
 }
 
 # --- Selection logic ---------------------------------------------------------
@@ -361,6 +479,14 @@ for key in ${chosen[@]+"${chosen[@]}"}; do
   seen[$key]=1
   "setup_${key}"
 done
+
+# --- Always: global Claude Code safety net -----------------------------------
+# Propagating the repo's deny rules to ~/.claude/settings.json is the whole point
+# of this project, so it runs regardless of which agents were selected (even none)
+# and is a no-op-safe merge. It only restricts, never grants.
+echo
+step "Global safety rules"
+_claude_merge_deny "$HOME/.claude/settings.json"
 
 # --- Always: executable bits -------------------------------------------------
 chmod +x scripts/*.sh bootstrap.sh 2>/dev/null || true
