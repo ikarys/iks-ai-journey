@@ -221,7 +221,8 @@ _claude_merge_deny() {
 }
 
 setup_claude() {
-  step "Claude Code"
+  # Project-scoped: loaded when CLI is opened inside this repo.
+  step "Claude Code — project (.claude/)"
   link ".claude/CLAUDE.md" "../AGENTS.md"
   link ".claude/rules"     "../canonical/rules"
   link ".claude/skills"    "../canonical/skills"
@@ -232,6 +233,15 @@ setup_claude() {
   # $CLAUDE_PROJECT_DIR and only make sense inside this repo, so they stay
   # project-scoped by design — they are not propagated to other sessions.
   info "enforcement hooks stay project-scoped (bound to \$CLAUDE_PROJECT_DIR)"
+
+  # User-global: loaded in every Claude Code session regardless of directory.
+  # Symlinks (not copies) so edits to canonical/ take effect immediately.
+  step "Claude Code — global WSL home ($HOME/.claude)"
+  link "$HOME/.claude/CLAUDE.md" "$repo_root/AGENTS.md"
+  link "$HOME/.claude/rules"     "$repo_root/canonical/rules"
+  link "$HOME/.claude/skills"    "$repo_root/canonical/skills"
+  link "$HOME/.claude/commands"  "$repo_root/canonical/commands"
+  info "global — instructions and skills available in every Claude Code session"
 }
 
 # pi_register_array <settings-file> <field> <dir>
