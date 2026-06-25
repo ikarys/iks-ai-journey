@@ -8,6 +8,7 @@ name (`chat-language.md` → `/chat-language`). Frontmatter `description` and
 | Command | Does |
 |---------|------|
 | [`/chat-language`](../canonical/commands/chat-language.md) | Switch the chat language for the rest of the session (artifacts stay English). |
+| [`/fresh`](../canonical/commands/fresh.md) | Context-hygiene check — recommend `/clear` vs `/compact` to keep input-token cost down. |
 
 ## How commands are wired per agent
 

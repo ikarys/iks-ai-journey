@@ -12,6 +12,7 @@ frontmatter `description` is the source of truth — the table below only indexe
 | [git-smart-commit](../canonical/skills/git-smart-commit/) | Group working-tree changes into coherent Conventional Commits after validation. Not for push/rebase/merge. |
 | [jira-ticket-creation](../canonical/skills/jira-ticket-creation/) | Generate a Jira ticket (title + description) from a short subject; auto-detects type. |
 | [precommit-setup](../canonical/skills/precommit-setup/) | Scaffold a complete `.pre-commit-config.yaml` (gitleaks, hygiene, conventional + stack hooks). |
+| [terragrunt-dry](../canonical/skills/terragrunt-dry/) | Diagnose and design Terragrunt DRY infra (Azure / OpenTofu) — include hierarchies, dependency wiring, `remote_state`, `generate`, `run --all` blast radius. |
 
 ## How skills are wired per agent
 

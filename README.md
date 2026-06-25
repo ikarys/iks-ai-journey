@@ -40,11 +40,11 @@ Full detail, the script contract, and how to add an agent:
 |------|------------|
 | `AGENTS.md` | Canonical agent instructions. Read **natively by Cursor**; symlinked into Claude Code as `.claude/CLAUDE.md`. |
 | `canonical/rules/` | One light, **path-scoped, semantic** rule per technology (terraform, kubernetes, docker, argocd, python, rust). Architecture only — no linter duplication. |
-| `canonical/skills/` | All skills, one folder each (`SKILL.md` + optional `template.md`): `adr/`, `agentsmd-generator/`, `git-smart-commit/`, `jira-ticket-creation/`, `precommit-setup/`. |
+| `canonical/skills/` | All skills, one folder each (`SKILL.md` + optional `template.md`): `adr/`, `agentsmd-generator/`, `git-smart-commit/`, `jira-ticket-creation/`, `precommit-setup/`, `terragrunt-dry/`. |
 | `canonical/commands/` | Tool-neutral slash commands (e.g. `chat-language.md`). |
 | `.claude/CLAUDE.md` | → `../AGENTS.md` (symlink) |
 | `.claude/rules/` · `.claude/skills/` · `.claude/commands/` | → matching `../canonical/*` (symlinks) |
-| `.claude/agents/code-reviewer.md` | Read-only review subagent (`tools: Read, Grep, Glob`). |
+| `.claude/agents/` | Claude subagents: `code-reviewer.md` (read-only review, `model: sonnet`) and `explore.md` (read-only broad search, `model: haiku`) — model-pinned to keep delegated work cheap. |
 | `.claude/settings.json` | Permissions (deny destructive/secret-reading, allow read-only) + `PreToolUse`/`UserPromptSubmit` command hooks → `scripts/*.sh`. |
 | `.pi/extensions/enforce.ts` | pi enforcement adapter: a TypeScript shim that shells out to the same `scripts/*.sh` and maps the result to pi's `{ block, reason }`. |
 | `scripts/check-branch.sh` | Block edits on `main`/`master`; escape hatch `ALLOW_MAIN_EDITS=1`. Harness-neutral (uses `git`, ignores stdin). |
