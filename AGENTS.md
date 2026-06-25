@@ -19,6 +19,9 @@ permissions) live in `.claude/` and are Claude Code-only — this file is guidan
 - Non-trivial task (multi-file, design choices, migrations) → **prefer plan mode**:
   show the plan, get approval, then execute.
 - Work in small, reviewable steps. Keep diffs focused.
+- **Branch discipline.** When edits to `main`/`master` are blocked, don't create a
+  branch silently — propose a task-derived name (`feat/add-pagination`,
+  `fix/auth-token-expiry`) and confirm before `git switch -c <name>`.
 
 ## Subagents — use them proactively
 
