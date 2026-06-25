@@ -1,0 +1,32 @@
+# markdownlint config — see https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+# Rules disabled here are ones this repo's house style breaks on purpose. The
+# toolchain owns syntax/format (see AGENTS.md §Rules & linters); markdownlint keeps
+# only the checks that catch real defects, not stylistic preferences.
+default: true
+
+# Prose is hand-wrapped ~80, but tables, code, and long links overflow. Line length
+# is the noisiest rule and adds no correctness signal — off.
+MD013: false
+
+# Dense docs: tight headings and list blocks are intentional. These whitespace rules
+# fight the layout without catching anything that matters.
+MD022: false # blanks around headings
+MD031: false # blanks around fenced code
+MD032: false # blanks around lists
+
+# Files lead with YAML frontmatter (skills/commands) and a title follows, so the
+# "first line must be H1 / single H1" rules misfire on legitimate structure.
+MD025: false # multiple top-level headings
+MD041: false # first line must be a top-level heading
+
+# ASCII architecture diagrams and plain output blocks have no sensible language tag.
+MD040: false # fenced code must declare a language
+
+# Generated/templated docs include inline HTML and bare URLs deliberately.
+MD033: false # inline HTML
+MD034: false # bare URLs
+
+# Duplicate headings are fine when they live under different parents (e.g. repeated
+# "## Workflow" across skills shown together).
+MD024:
+  siblings_only: true
