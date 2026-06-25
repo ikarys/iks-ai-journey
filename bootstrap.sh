@@ -412,6 +412,21 @@ choose_agents() {
 }
 
 # --- Optional plugins (interactive opt-in only) ------------------------------
+# Post-install wiring for specific plugins. A _plugin_post_<key> function, if it
+# exists, runs after that plugin installs successfully (mirrors the setup_<key>
+# dispatch). caveman: pin the default intensity so a fresh machine gets caveman
+# *full* without a manual /caveman each session — but never clobber an existing
+# choice (a user who set lite/off keeps it).
+_plugin_post_caveman() {
+  local marker="$HOME/.claude/.caveman-active"
+  if [ -f "$marker" ]; then
+    info "caveman level already set ($(cat "$marker")) — leaving as-is" >&2
+  else
+    printf 'full\n' > "$marker"
+    ok "caveman default level → ${BOLD}full${RESET} ${DIM}($marker)${RESET}" >&2
+  fi
+}
+
 # Prompts only on a real TTY. Default = none. Runs each chosen plugin's remote
 # installer. Skipped entirely with no TTY (CI) so setup never does surprise RCE.
 install_plugins() {
@@ -459,6 +474,10 @@ install_plugins() {
     printf '%s\n' "  ${DIM}\$ ${!cmd}${RESET}" >&2
     if eval "${!cmd}"; then
       ok "$key installed" >&2
+      # Optional per-plugin post-install wiring (no-op if undefined).
+      if declare -F "_plugin_post_${key}" >/dev/null; then
+        "_plugin_post_${key}"
+      fi
     else
       err "$key install failed (continuing)"
     fi
