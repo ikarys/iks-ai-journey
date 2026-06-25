@@ -103,15 +103,15 @@ interactive_select() {
       ' ') checked[cursor]=$(( 1 - checked[cursor] )) ;;
       a|A)                                     # toggle all on/off
         local allon=1
-        for ((i = 0; i < n; i++)); do [ "${checked[i]}" -eq 0 ] && allon=0 || true; done
+        for ((i = 0; i < n; i++)); do if [ "${checked[i]}" -eq 0 ]; then allon=0; fi; done
         for ((i = 0; i < n; i++)); do checked[i]=$(( 1 - allon )); done ;;
-      k) ((cursor > 0))     && ((cursor--)) || true ;;   # vim up
-      j) ((cursor < n - 1)) && ((cursor++)) || true ;;   # vim down
+      k) if ((cursor > 0));     then ((cursor--)); fi ;;   # vim up
+      j) if ((cursor < n - 1)); then ((cursor++)); fi ;;   # vim down
       $'\e')                                   # arrow keys: ESC [ A/B
         read -rsn2 -t 0.05 rest </dev/tty || true
         case "$rest" in
-          '[A') ((cursor > 0))     && ((cursor--)) || true ;;
-          '[B') ((cursor < n - 1)) && ((cursor++)) || true ;;
+          '[A') if ((cursor > 0));     then ((cursor--)); fi ;;
+          '[B') if ((cursor < n - 1)); then ((cursor++)); fi ;;
         esac ;;
     esac
     printf '\e[%dA' "$n" >&2                    # rewind n rows, redraw
@@ -145,6 +145,7 @@ PLUGIN_KEYS=(caveman)
 PLUGIN_LABELS=(
   "caveman — ultra-terse multi-agent comms (runs remote curl|bash installer)"
 )
+# shellcheck disable=SC2034  # used indirectly via ${!cmd} in install_plugins
 PLUGIN_CMD_caveman='curl -fsSL https://raw.githubusercontent.com/JuliusBrussee/caveman/main/install.sh | bash'
 
 # --- Helpers -----------------------------------------------------------------
@@ -407,7 +408,7 @@ choose_agents() {
   local tok key
   for tok in $reply; do
     key="$(resolve_token "$tok")"
-    [ -n "$key" ] && echo "$key" || warn "ignoring unknown agent: '$tok'"
+    if [ -n "$key" ]; then echo "$key"; else warn "ignoring unknown agent: '$tok'"; fi
   done
 }
 
