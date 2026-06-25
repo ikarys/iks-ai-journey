@@ -4,7 +4,7 @@ description: >
   Read-only code reviewer. Use to review a diff or a set of files for correctness,
   clarity, security, and architectural fit. Cannot edit — it reports findings only.
 tools: Read, Grep, Glob
-model: inherit
+model: sonnet
 ---
 
 # Code Reviewer (read-only)

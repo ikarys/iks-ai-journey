@@ -35,12 +35,18 @@ secret scan. Activate with `pre-commit install` (the `precommit-setup` skill
 scaffolds it). Commit-time policies belong here; runtime policies (no `rm -rf`, no
 secret reads, no edits on `main`) belong in the per-agent scripts above.
 
-## Read-only review subagent
+## Subagents (Claude-specific)
 
-[`.claude/agents/code-reviewer.md`](../.claude/agents/code-reviewer.md) — a
-read-only reviewer (`tools: Read, Grep, Glob`) that reports correctness, security,
-clarity, and architecture findings without editing. Claude-specific format; the
-persona is portable.
+[`.claude/agents/`](../.claude/agents/) holds read-only subagents, each
+**model-pinned** so delegated work stays cheap:
+
+| Agent | Tools | Model | Purpose |
+|-------|-------|-------|---------|
+| [`code-reviewer`](../.claude/agents/code-reviewer.md) | `Read, Grep, Glob` | `sonnet` | Report correctness, security, clarity, architecture findings without editing. |
+| [`explore`](../.claude/agents/explore.md) | `Read, Grep, Glob` | `haiku` | Broad fan-out search — locate where things live, return a conclusion not file dumps. Keeps the main context lean. |
+
+Claude-specific format; the personas are portable. The model pins turn the
+"cheaper model for mechanical work" guidance in `AGENTS.md` into a wired default.
 
 ## Adding a check
 
