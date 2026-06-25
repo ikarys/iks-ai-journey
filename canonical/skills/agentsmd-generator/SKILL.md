@@ -1,6 +1,6 @@
 ---
 name: agentsmd-generator
-description: "Generates a production-grade AGENTS.md by reading the current repo and applying best practices for AI coding agents. Use when the user asks to generate or scaffold an AGENTS.md or CLAUDE.md, or wants to document conventions for AI agents on their project. Auto-detects mode: --dev (app code), --iac (Terraform/Terragrunt/Pulumi), --gitops (ArgoCD/Flux/Helm/Kustomize). Trigger on: AGENTS.md, agent instructions, coding agent conventions, onboard AI agent."
+description: "Generate a production-grade AGENTS.md/CLAUDE.md by reading the current repo and applying AI-agent best practices. Use when asked to generate, scaffold, or document agent conventions for a project. Auto-detects mode: --dev (app code), --iac (Terraform/Terragrunt/Pulumi), --gitops (ArgoCD/Flux/Helm/Kustomize)."
 ---
 
 # AGENTS.md Generator

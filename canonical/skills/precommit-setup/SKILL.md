@@ -1,12 +1,11 @@
 ---
 name: precommit-setup
 description: >
-  Scaffold a complete .pre-commit-config.yaml for the current git repo.
-  Always includes gitleaks (secrets), end-of-file-fixer, trailing-whitespace,
-  check-yaml/json/merge-conflict, and conventional-pre-commit. Adds
-  stack-specific hooks (ruff, shellcheck, markdownlint, terraform, etc.)
-  based on detected project type. Use when the user asks to set up pre-commit,
-  or when /precommit-setup is invoked.
+  Scaffold a complete .pre-commit-config.yaml for the current git repo: gitleaks
+  (secrets), file hygiene (end-of-file-fixer, trailing-whitespace,
+  check-yaml/json/merge-conflict), conventional-pre-commit, plus stack-specific
+  hooks (ruff, shellcheck, markdownlint, terraform, etc.) by detected project type.
+  Use when asked to set up pre-commit, or when /precommit-setup is invoked.
 ---
 
 # Skill: pre-commit Setup

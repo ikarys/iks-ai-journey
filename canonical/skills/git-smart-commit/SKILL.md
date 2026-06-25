@@ -1,6 +1,6 @@
 ---
 name: git-smart-commit
-description: Analyze current Git changes (staged, unstaged, and untracked), group them into logically coherent commits, and execute them as Conventional Commits after user validation. Triggers include phrases like "commit my work", "prepare commits", "commit these changes", "clean up git status", end-of-session commit requests, or any time working tree changes need to be organized into atomic commits. Do NOT use for push, pull, rebase, merge, branch operations, tag creation, or rewriting existing history.
+description: Analyze current Git changes (staged, unstaged, untracked), group them into coherent commits, and execute them as Conventional Commits after user validation. Use for "commit my work", "prepare commits", "clean up git status", end-of-session commits. NOT for push/pull/rebase/merge/branch/tag or rewriting history.
 ---
 
 # Git Smart Commit

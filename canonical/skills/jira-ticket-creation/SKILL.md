@@ -1,6 +1,6 @@
 ---
 name: jira-ticket-creation
-description: Generate a Jira ticket (title + description) from a short subject input. Use when the user wants to create a Jira ticket or says something like "create a ticket for...", "generate a Jira story about...", "I need a ticket on...". Automatically detects ticket type from input; asks one clarifying question only if ambiguous.
+description: Generate a Jira ticket (title + description) from a short subject. Use when the user wants to create a Jira ticket or story ("create a ticket for…", "Jira story about…"). Auto-detects ticket type; asks one clarifying question only if ambiguous.
 ---
 
 # Jira Ticket Generator
